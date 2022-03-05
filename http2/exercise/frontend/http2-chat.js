@@ -28,15 +28,53 @@ async function postNewMsg(user, text) {
 
   // send POST request
   // we're not sending any json back, but we could
-  await fetch("/msgs", options);
+  await fetch('/msgs', options);
 }
 
 async function getNewMsgs() {
-  /*
-   *
-   * code goes here
-   *
-   */
+  let reader;
+
+  const utf8Decoder = new TextDecoder('utf-8');
+
+  try {
+    const res = await fetch('/msgs');
+    reader = res.body.getReader();
+  } catch(err) {
+    console.log('connection error ', e);
+  }
+
+  presence.innerText = '🟢';
+
+  let readerResponse;
+  let done;
+
+  do {
+    try {
+      readerResponse = await reader.read();
+    } catch (err) {
+      console.error('Reader failed: ' + err);
+      presence.innerText = '🔴';
+      return;
+    }
+
+    const chunk = utf8Decoder.decode(readerResponse.value, { stream: true });
+    done = readerResponse.done;
+    // console.log(chunk);
+
+    if (chunk) {
+      try {
+        const json = JSON.parse(chunk);
+        allChat = json.msg;
+
+        render();
+      } catch(err) {
+        console.error('Parse error', err);
+      }
+    }
+
+  } while (!done);
+
+  presence.innerText = '🔴';
 }
 
 function render() {
